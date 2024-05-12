@@ -1,8 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"log/slog"
+	"net/http"
 	"os"
 	"url_shortener/internal/config"
 	"url_shortener/internal/storage/sqlite"
@@ -21,25 +23,34 @@ func main() {
 	log := setupLogger(cfg.Env)
 
 	log = log.With("Env", cfg.Env)
-	log.Info("Logger initialized", slog.String("Server address", cfg.Address))
+	log.Info("Logger initialized")
 	log.Debug("Debug mode enabled")
 
-	db, err := sqlite.NewConnect(cfg.Storage)
+	_, err := sqlite.NewConnect(cfg.Storage)
 	if err != nil {
-		fmt.Errorf("storage initialization failed: %s", err)
+		log.Error("storage initialization failed: %s", err)
 		return
 	}
 
-	id, err := db.SaveURL("https:google.com", "googlefuckoff")
+	router := chi.NewRouter()
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
+	router.Use(middleware.URLFormat)
+
+	srv := &http.Server{
+		Addr:         cfg.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.Timeout,
+		WriteTimeout: cfg.Timeout,
+		IdleTimeout:  cfg.IdleTimeout,
+	}
+
+	log.Info("Server initialized", slog.String("Server address", srv.Addr))
+
+	err = srv.ListenAndServe()
 	if err != nil {
-		fmt.Errorf("failed to save URL: %s", err)
 		return
 	}
-	fmt.Println(*id)
-
-	//TODO: router (chi, chi-middleware, chi-render)
-
-	//TODO: run server
 }
 
 func setupLogger(env string) *slog.Logger {
