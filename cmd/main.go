@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"url_shortener/internal/config"
+	"url_shortener/internal/http/handlers/urls"
 	"url_shortener/internal/storage/sqlite"
 )
 
@@ -26,7 +27,7 @@ func main() {
 	log.Info("Logger initialized")
 	log.Debug("Debug mode enabled")
 
-	_, err := sqlite.NewConnect(cfg.Storage)
+	storage, err := sqlite.NewConnect(cfg.Storage)
 	if err != nil {
 		log.Error("storage initialization failed: %s", err)
 		return
@@ -36,6 +37,8 @@ func main() {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 	router.Use(middleware.URLFormat)
+	router.Use(middleware.Recoverer)
+	router.Post("/url", urls.SaveURL(log, storage))
 
 	srv := &http.Server{
 		Addr:         cfg.Address,
