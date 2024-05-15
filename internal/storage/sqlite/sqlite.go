@@ -74,6 +74,22 @@ func (s *Storage) GetAlias(LoadURL string) (*string, error) {
 	return &alias, nil
 }
 
+func (s *Storage) GetURL(alias string) (string, error) {
+	const op = "Storage.sqlite.GetURL"
+	stmt, err := s.db.Prepare("SELECT url FROM urls WHERE alias=?")
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	var getUrl string
+	err = stmt.QueryRow(alias).Scan(&getUrl)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	return getUrl, nil
+}
+
 func (s *Storage) SearchByURL(LoadURL string) (*string, error) {
 	const op = "Storage.sqlite.SearchByURL"
 

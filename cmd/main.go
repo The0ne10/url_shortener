@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"os"
 	"url_shortener/internal/config"
-	"url_shortener/internal/http/handlers/urls"
+	"url_shortener/internal/http/handlers/urls/urlRedirect"
+	"url_shortener/internal/http/handlers/urls/urlSaver"
 	"url_shortener/internal/storage/sqlite"
 )
 
@@ -38,7 +39,8 @@ func main() {
 	router.Use(middleware.Logger)
 	router.Use(middleware.URLFormat)
 	router.Use(middleware.Recoverer)
-	router.Post("/url", urls.SaveURL(log, storage))
+	router.Post("/", urlSaver.SaveURL(log, storage))
+	router.Get("/{slug}", urlRedirect.RedirectUrl(log, storage))
 
 	srv := &http.Server{
 		Addr:         cfg.Address,
@@ -52,7 +54,7 @@ func main() {
 
 	err = srv.ListenAndServe()
 	if err != nil {
-		return
+		panic(err)
 	}
 }
 

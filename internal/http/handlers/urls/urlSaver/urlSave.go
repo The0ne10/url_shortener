@@ -1,4 +1,4 @@
-package urls
+package urlSaver
 
 import (
 	"fmt"
@@ -73,7 +73,7 @@ func SaveURL(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 		}
 
 		if matchAlias != nil {
-			responseSuccess(w, r, *matchAlias)
+			responseSuccess(w, r, fullUrl(r, *matchAlias))
 			return
 		}
 
@@ -94,7 +94,7 @@ func SaveURL(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 
 		log.Info("url saved", slog.Int64("id", *id))
 
-		responseSuccess(w, r, alias)
+		responseSuccess(w, r, fullUrl(r, alias))
 	}
 }
 
@@ -122,4 +122,15 @@ func validationError(errs validator.ValidationErrors) resp.Response {
 		Status: StatusError,
 		Error:  strings.Join(errMsgs, ", "),
 	}
+}
+
+func fullUrl(r *http.Request, alias string) string {
+
+	urlScheme := r.URL.Scheme
+
+	if urlScheme == "" {
+		urlScheme = "http://"
+	}
+
+	return urlScheme + strings.Split(r.Host, ":")[0] + r.RequestURI + alias
 }
